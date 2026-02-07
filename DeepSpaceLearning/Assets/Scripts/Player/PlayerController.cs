@@ -20,6 +20,12 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float crouchingHeight = 1.0f;
     [SerializeField] private float crouchTransitionSpeed = 10f;
 
+    public bool CanMove;
+    public bool CanJump;
+    public bool CanSprint;
+    public bool CanCrouch;
+    public bool CanStand;
+
     private CharacterController controller;
     private PlayerInput input;
     private Vector2 moveInput;
@@ -49,7 +55,7 @@ public class PlayerController : MonoBehaviour
     public void OnLook(InputValue value) => lookInput = value.Get<Vector2>();
     public void OnJump(InputValue value)
     {
-        if (value.isPressed && controller.isGrounded)
+        if (value.isPressed && controller.isGrounded && CanJump)
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
@@ -61,13 +67,15 @@ public class PlayerController : MonoBehaviour
 
     private void HandleMovement()
     {
+        if(!CanMove) return;
+
         if (controller.isGrounded && velocity.y < 0)
         {
             velocity.y = -2f; // Keeps player snapped to ground
         }
 
         // Determine current speed
-        float currentSpeed = isCrouching ? crouchSpeed : (isSprinting ? sprintSpeed : walkSpeed);
+        float currentSpeed = isCrouching ? crouchSpeed : (isSprinting && CanSprint ? sprintSpeed : walkSpeed);
 
         Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
         controller.Move(move * currentSpeed * Time.deltaTime);
@@ -91,8 +99,14 @@ public class PlayerController : MonoBehaviour
 
     private void HandleCrouchHeight()
     {
+        if (!CanCrouch)
+            isCrouching = false;
+        else if (!CanStand)
+            isCrouching = true;
+
         float targetHeight = isCrouching ? crouchingHeight : standingHeight;
-        controller.height = Mathf.Lerp(controller.height, targetHeight, Time.deltaTime * crouchTransitionSpeed);
+
+            controller.height = Mathf.Lerp(controller.height, targetHeight, Time.deltaTime * crouchTransitionSpeed);
 
         // Adjust camera position locally if needed, or parent it to a transform that moves
     }
